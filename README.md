@@ -1,59 +1,75 @@
-# PurgeWorkspace
+🌪️ ng-purge-unused
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.1.7.
+Automatic cleanup tool for Angular & TypeScript projects.
+Removes unused variables, functions, classes, private methods, console.log() statements, and debugger from your Angular/TS codebase.
 
-## Development server
+🚀 Features
+✅ Automatic Cleanup
 
-To start a local development server, run:
+Unused variables
 
-```bash
-ng serve
-```
+Unused functions
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Unused private methods
 
-## Code scaffolding
+Unused classes
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+Unused imports (via fixUnusedIdentifiers())
 
-```bash
-ng generate component component-name
-```
+🧹 Code Hygiene
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Removes all console.log()
 
-```bash
-ng generate --help
-```
+Removes all debugger statements
 
-## Building
+🎯 Smart Detection
 
-To build the project run:
+Skips Angular-decorated classes like:
 
-```bash
-ng build
-```
+@Component
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+@Injectable
 
-## Running unit tests
+@Directive
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+@Pipe
 
-```bash
-ng test
-```
+@NgModule
 
-## Running end-to-end tests
+Does not touch Angular files unless truly unused
 
-For end-to-end (e2e) testing, run:
+🛡️ Safe Mode
 
-```bash
-ng e2e
-```
+--dry mode to preview changes before applying
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+📁 Path-based Cleanup
 
-## Additional Resources
+Clean any folder:
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+ng-purge-unused --path src/app
+
+📝 Ignore / Exclude Support
+
+--ignore name1,name2
+
+--exclude src/**/*.spec.ts
+
+📦 Installation
+
+Install globally:
+
+npm install -g ng-purge-unused
+
+
+Or use with npx:
+
+npx ng-purge-unused --path src/app
+
+🏃 Usage
+
+Run in your Angular or TypeScript project:
+
+ng-purge-unused --path <folder>
+
+Example:
+ng-purge-unused --path src/app
