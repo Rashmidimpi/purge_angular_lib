@@ -39,5 +39,6 @@
   },
   "bin": {
   "ng-purge-unused": "cli.mjs"
-}
+},
+"type": "module"
 }
