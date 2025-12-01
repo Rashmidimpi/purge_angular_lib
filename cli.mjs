@@ -1,24 +1,40 @@
 #!/usr/bin/env node
-import { purgePath } from "ng-purge-unused";
 
-const args = process.argv.slice(2);
+import { fileURLToPath } from "url";
+import path from "path";
 
-function getArg(name, d) {
-  const i = args.indexOf(name);
-  if (i === -1) return d;
-  return args[i + 1] ?? true;
-}
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const options = {
-  path: getArg("--path"),
-  dry: args.includes("--dry"),
-  exclude: getArg("--exclude","").split(",").filter(Boolean),
-  removeLogs: args.includes("--remove-logs")
-};
+// Resolve real dist output file path dynamically
+const purgePathFile = path.resolve(
+  __dirname,
+  "./dist/ng-purge-unused/fesm2022/ng-purge-unused.mjs"
+);
 
-if (!options.path) {
-  console.error("Usage: ng-purge-unused --path src/app --remove-logs");
-  process.exit(1);
-}
+import(purgePathFile).then(({ purgePath }) => {
+  const args = process.argv.slice(2);
 
-purgePath(options.path, options);
+  function getArg(name, def) {
+    const i = args.indexOf(name);
+    if (i === -1) return def;
+    return args[i + 1] ?? true;
+  }
+
+  const options = {
+    path: getArg("--path"),
+    dry: args.includes("--dry"),
+    ignoreList: getArg("--ignore", "").split(",").filter(Boolean),
+    exclude: getArg("--exclude", "").split(",").filter(Boolean),
+    removeLogs: args.includes("--remove-logs"),
+  };
+
+  if (!options.path) {
+    console.log("Usage: ng-purge-unused --path src/app --remove-logs");
+    process.exit(1);
+  }
+
+  purgePath(options.path, options);
+}).catch((err) => {
+  console.error("❌ Could not load purge engine:", err);
+});
