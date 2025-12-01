@@ -1,6 +1,6 @@
 {
   "name": "purge-workspace",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -38,7 +38,7 @@
     "typescript": "~5.7.2"
   },
   "bin": {
-  "ng-purge-unused": "cli.mjs"
-},
-"type": "module"
+    "ng-purge-unused": "cli.mjs"
+  },
+  "type": "module"
 }
