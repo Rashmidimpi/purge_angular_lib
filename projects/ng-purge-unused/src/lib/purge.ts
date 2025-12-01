@@ -2,60 +2,89 @@ import {
   Project,
   SyntaxKind,
   Node,
+  VariableDeclaration,
+  FunctionDeclaration,
   MethodDeclaration,
-  PropertyDeclaration,
   ClassDeclaration
 } from "ts-morph";
 import * as path from "path";
 
+// FORCE ROOT TSCONFIG PATH (fix for Mac + Windows)
+const ROOT_TSCONFIG = path.join(process.cwd(), "tsconfig.json");
+
 export async function purgePath(targetPath: string, options: any = {}) {
+  console.log("ng-purge-unused loaded");
   console.log("🔍 Scanning:", targetPath);
 
   const project = new Project({
-    tsConfigFilePath: path.resolve("tsconfig.app.json")
+    tsConfigFilePath: ROOT_TSCONFIG,
+    skipAddingFilesFromTsConfig: true
   });
-  
+
   project.addSourceFilesAtPaths(`${targetPath}/**/*.ts`);
 
   for (const file of project.getSourceFiles()) {
-    console.log(`📄 File: ${file.getBaseName()}`);
-
     const removeNodes: Node[] = [];
 
-    // Remove console logs
-    if (options.removeLogs) {
-      file.forEachDescendant(node => {
-        if (node.getKind() === SyntaxKind.CallExpression &&
-            node.getText().startsWith("console.log")) {
-          const stmt = node.getParentIfKind(SyntaxKind.ExpressionStatement);
-          if (stmt) removeNodes.push(stmt);
-        }
-      });
-    }
+    file.fixUnusedIdentifiers();
 
-    // Remove unused methods & properties inside class
-    file.getClasses().forEach((cls: ClassDeclaration) => {
-      cls.getProperties().forEach((prop: PropertyDeclaration) => {
-        const name = prop.getName();
-        const matches = file.getDescendants().filter(n => n.getText() === name);
-        if (matches.length <= 1) {
-          console.log("🗑 Unused property:", name);
-          removeNodes.push(prop);
-        }
-      });
+    file.forEachDescendant((node) => {
 
-      cls.getMethods().forEach((method: MethodDeclaration) => {
-        const name = method.getName();
-        const matches = file.getDescendants().filter(n => n.getText() === name);
-        if (matches.length <= 1) {
-          console.log("🗑 Unused method:", name);
-          removeNodes.push(method);
+      // Remove console.log + debugger
+      if (options.removeLogs) {
+        if (
+          node.getKind() === SyntaxKind.CallExpression &&
+          node.getText().startsWith("console.log")
+        ) {
+          const parent = node.getParentIfKind(SyntaxKind.ExpressionStatement);
+          if (parent) removeNodes.push(parent);
         }
-      });
+
+        if (node.getKind() === SyntaxKind.DebuggerStatement) {
+          removeNodes.push(node);
+        }
+      }
+
+      // Remove unused variable
+      if (node.getKind() === SyntaxKind.VariableDeclaration) {
+        const v = node.asKindOrThrow(SyntaxKind.VariableDeclaration);
+        if (v.findReferencesAsNodes().length === 0) removeNodes.push(v);
+      }
+
+      // Remove unused function
+      if (node.getKind() === SyntaxKind.FunctionDeclaration) {
+        const fn = node.asKindOrThrow(SyntaxKind.FunctionDeclaration);
+        if (fn.getName() && fn.findReferencesAsNodes().length === 0)
+          removeNodes.push(fn);
+      }
+
+      // Remove unused private method
+      if (node.getKind() === SyntaxKind.MethodDeclaration) {
+        const m = node.asKindOrThrow(SyntaxKind.MethodDeclaration);
+        if (
+          m.hasModifier(SyntaxKind.PrivateKeyword) &&
+          m.findReferencesAsNodes().length === 0
+        ) {
+          removeNodes.push(m);
+        }
+      }
+
+      // Remove unused class
+      if (node.getKind() === SyntaxKind.ClassDeclaration) {
+        const c = node.asKindOrThrow(SyntaxKind.ClassDeclaration);
+        if (c.getName() && c.findReferencesAsNodes().length === 0) {
+          removeNodes.push(c);
+        }
+      }
     });
 
     if (!options.dry) {
-      removeNodes.forEach(n => n.replaceWithText(""));
+      removeNodes.forEach((node) => {
+        try {
+          (node as any).remove?.() || node.replaceWithText("");
+        } catch {}
+      });
+
       await file.save();
     } else {
       console.log(`🔎 Dry run: ${removeNodes.length} items found`);
