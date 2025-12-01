@@ -2,39 +2,48 @@
 
 import { fileURLToPath } from "url";
 import path from "path";
-import { createRequire } from "module";
+import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Create require that resolves from this CLI's folder
-const require = createRequire(import.meta.url);
+// ---- Dynamically detect real mjs output path ----
+const candidatePaths = [
+  "../dist/ng-purge-unused/fesm2022/ng-purge-unused.mjs",
+  "./dist/ng-purge-unused/fesm2022/ng-purge-unused.mjs",
+  "dist/ng-purge-unused/fesm2022/ng-purge-unused.mjs"
+];
 
-// Resolve actual module root inside global npm folder
-const moduleRoot = path.dirname(require.resolve("ng-purge-unused/package.json"));
+let purgeEnginePath = null;
 
-// FINAL built purge file path
-const purgeFile = path.join(
-  moduleRoot,
-  "fesm2022/ng-purge-unused.mjs"
-);
+for (const p of candidatePaths) {
+  const resolved = path.resolve(__dirname, p);
+  if (fs.existsSync(resolved)) {
+    purgeEnginePath = resolved;
+    break;
+  }
+}
 
-// Load purge module
-import(purgeFile).then(({ purgePath }) => {
+if (!purgeEnginePath) {
+  console.error("❌ Could not locate purge engine output. Rebuild or reinstall package.");
+  process.exit(1);
+}
+
+import(purgeEnginePath).then(({ purgePath }) => {
   const args = process.argv.slice(2);
 
   function getArg(name, def) {
-    const i = args.indexOf(name);
-    if (i === -1) return def;
-    return args[i + 1] ?? true;
+    const idx = args.indexOf(name);
+    if (idx === -1) return def;
+    return args[idx + 1] ?? true;
   }
 
   const options = {
     path: getArg("--path"),
     dry: args.includes("--dry"),
-    ignoreList: getArg("--ignore", "").split(",").filter(Boolean),
+    removeLogs: args.includes("--remove-logs"),
     exclude: getArg("--exclude", "").split(",").filter(Boolean),
-    removeLogs: args.includes("--remove-logs")
+    ignoreList: getArg("--ignore", "").split(",").filter(Boolean)
   };
 
   if (!options.path) {
@@ -43,6 +52,6 @@ import(purgeFile).then(({ purgePath }) => {
   }
 
   purgePath(options.path, options);
-}).catch(err => {
-  console.error("❌ Failed to load purge engine:", err);
+}).catch((err) => {
+  console.error("❌ Engine load failed:", err);
 });
