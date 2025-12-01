@@ -12,9 +12,9 @@ export async function purgePath(targetPath: string, options: any = {}) {
   console.log("🔍 Scanning:", targetPath);
 
   const project = new Project({
-    tsConfigFilePath: path.join(process.cwd(), "tsconfig.json")
+    tsConfigFilePath: path.resolve("tsconfig.app.json")
   });
-
+  
   project.addSourceFilesAtPaths(`${targetPath}/**/*.ts`);
 
   for (const file of project.getSourceFiles()) {
